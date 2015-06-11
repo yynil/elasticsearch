@@ -19,17 +19,30 @@
 
 package org.apache.lucene.search;
 
+<<<<<<< HEAD
 import org.apache.lucene.index.IndexReader;
+=======
+>>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
 import org.apache.lucene.util.GeoUtils;
 
 /**
  * TermQuery for GeoPointField for overriding {@link org.apache.lucene.search.MultiTermQuery} methods specific to
  * Geospatial operations
  *
+<<<<<<< HEAD
  * @lucene.experimental
  */
 
 // TODO: remove this?  Just absorb into its base class
+=======
+ * Note: see {@link org.apache.lucene.search.GeoPointTermsEnum} for a special note about
+ * {@param detailLevel}
+ *
+ * @lucene.experimental
+ */
+
+// TODO: remove this?  Just absorb into its base class5
+>>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
 abstract class GeoPointTermQuery extends MultiTermQuery {
   // simple bounding box optimization - no objects used to avoid dependencies
   protected final double minLon;
@@ -60,6 +73,7 @@ abstract class GeoPointTermQuery extends MultiTermQuery {
     this.minLat = minLat;
     this.maxLon = maxLon;
     this.maxLat = maxLat;
+<<<<<<< HEAD
 
     this.rewriteMethod = GEO_CONSTANT_SCORE_REWRITE;
   }
@@ -74,4 +88,7 @@ abstract class GeoPointTermQuery extends MultiTermQuery {
   };
 
 
+=======
+  }
+>>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
 }
