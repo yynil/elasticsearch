@@ -30,6 +30,5 @@ public class IndexedGeoBoundingBoxQuery {
 
     public static Query create(GeoPoint topLeft, GeoPoint bottomRight, GeoPointFieldMapper.GeoPointFieldType fieldType) {
         return new GeoPointInBBoxQuery(fieldType.names().fullName(), topLeft.lon(), bottomRight.lat(), bottomRight.lon(), topLeft.lat());
-
     }
 }
