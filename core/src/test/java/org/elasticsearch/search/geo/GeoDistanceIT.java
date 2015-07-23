@@ -65,6 +65,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class GeoDistanceIT extends ESIntegTestCase {
 
     @Test
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void simpleDistanceTests() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("location").field("type", "geo_point").field("lat_lon", true)
@@ -219,6 +220,7 @@ public class GeoDistanceIT extends ESIntegTestCase {
     }
 
     @Test
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingMVFields() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("locations").field("type", "geo_point").field("lat_lon", true)
@@ -344,6 +346,7 @@ public class GeoDistanceIT extends ESIntegTestCase {
 
     @Test
     // Regression bug: https://github.com/elasticsearch/elasticsearch/issues/2851
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingWithMissingGeoPoint() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("locations").field("type", "geo_point").field("lat_lon", true)
@@ -637,6 +640,7 @@ public class GeoDistanceIT extends ESIntegTestCase {
      * Issue 3073
      */
     @Test
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoDistanceFilter() throws IOException {
         double lat = 40.720611;
         double lon = -73.998776;
