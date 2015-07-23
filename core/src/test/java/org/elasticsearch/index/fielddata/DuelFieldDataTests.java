@@ -398,6 +398,7 @@ public class DuelFieldDataTests extends AbstractFieldDataTests {
         }
     }
 
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDuelGeoPoints() throws Exception {
         final String mapping = XContentFactory.jsonBuilder().startObject().startObject("type")
                 .startObject("properties")
