@@ -1929,6 +1929,7 @@ public class SimpleSortTests extends ElasticsearchIntegrationTest {
                 DistanceUnit.KILOMETERS), 0.01d));
     }
 
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testSinglePointGeoDistanceSort() throws ExecutionException, InterruptedException, IOException {
         assertAcked(prepareCreate("index").addMapping("type", "location", "type=geo_point"));
         indexRandom(true,

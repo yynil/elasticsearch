@@ -194,6 +194,7 @@ public class ContextSuggestSearchTests extends ElasticsearchIntegrationTest {
 
 
     @Test
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoField() throws Exception {
 
         XContentBuilder mapping = jsonBuilder();
