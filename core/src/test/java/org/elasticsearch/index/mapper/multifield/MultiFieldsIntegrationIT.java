@@ -102,6 +102,7 @@ public class MultiFieldsIntegrationIT extends ESIntegTestCase {
     }
 
     @Test
+    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoPointMultiField() throws Exception {
         assertAcked(
                 client().admin().indices().prepareCreate("my-index")
