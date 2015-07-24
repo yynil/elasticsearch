@@ -23,6 +23,7 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.google.common.collect.Lists;
 import org.apache.lucene.analysis.PrefixAnalyzer.PrefixTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.GeoPointField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.automaton.Automata;
@@ -648,8 +649,11 @@ public class GeolocationContextMapping extends ContextMapping {
                         geohashes = new ArrayList<>(fields.length);
                         GeoPoint spare = new GeoPoint();
                         for (IndexableField field : fields) {
-                            spare.resetFromString(field.stringValue());
-                            geohashes.add(spare.geohash());
+                            // docvalues not supported
+                            if (field instanceof GeoPointField) {
+                                spare.resetFromIndexHash((long) field.numericValue());
+                                geohashes.add(spare.geohash());
+                            }
                         }
                     }
                 } else {

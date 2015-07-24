@@ -194,7 +194,6 @@ public class ContextSuggestSearchIT extends ESIntegTestCase {
 
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoField() throws Exception {
 
         XContentBuilder mapping = jsonBuilder();
