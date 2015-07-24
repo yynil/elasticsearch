@@ -19,10 +19,7 @@
 
 package org.apache.lucene.document;
 
-<<<<<<< HEAD
 import org.apache.lucene.index.DocValuesType;
-=======
->>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.GeoUtils;
 
@@ -47,11 +44,7 @@ import org.apache.lucene.util.GeoUtils;
  * @lucene.experimental
  */
 public final class GeoPointField extends Field {
-<<<<<<< HEAD
   public static final int PRECISION_STEP = 9;
-=======
-  public static final int PRECISION_STEP = 3;
->>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
 
   /**
    * Type for an GeoPointField that is not stored:
@@ -62,10 +55,7 @@ public final class GeoPointField extends Field {
     TYPE_NOT_STORED.setTokenized(false);
     TYPE_NOT_STORED.setOmitNorms(true);
     TYPE_NOT_STORED.setIndexOptions(IndexOptions.DOCS);
-<<<<<<< HEAD
     TYPE_NOT_STORED.setDocValuesType(DocValuesType.SORTED_NUMERIC);
-=======
->>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
     TYPE_NOT_STORED.setNumericType(FieldType.NumericType.LONG);
     TYPE_NOT_STORED.setNumericPrecisionStep(PRECISION_STEP);
     TYPE_NOT_STORED.freeze();
@@ -80,10 +70,7 @@ public final class GeoPointField extends Field {
     TYPE_STORED.setTokenized(false);
     TYPE_STORED.setOmitNorms(true);
     TYPE_STORED.setIndexOptions(IndexOptions.DOCS);
-<<<<<<< HEAD
     TYPE_STORED.setDocValuesType(DocValuesType.SORTED_NUMERIC);
-=======
->>>>>>> Integrating Lucene GeoPointField as default type for geo_point indexing
     TYPE_STORED.setNumericType(FieldType.NumericType.LONG);
     TYPE_STORED.setNumericPrecisionStep(PRECISION_STEP);
     TYPE_STORED.setStored(true);
