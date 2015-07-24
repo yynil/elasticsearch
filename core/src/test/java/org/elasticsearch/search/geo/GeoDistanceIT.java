@@ -65,11 +65,11 @@ import static org.hamcrest.Matchers.equalTo;
 public class GeoDistanceIT extends ESIntegTestCase {
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void simpleDistanceTests() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("location").field("type", "geo_point").field("lat_lon", true)
-                .startObject("fielddata").field("format", randomNumericFieldDataFormat()).endObject().endObject().endObject()
+                .startObject("fielddata").field("format", randomNumericFieldDataFormat()).endObject().endObject()
+                .endObject()
                 .endObject().endObject();
         assertAcked(prepareCreate("test").addMapping("type1", xContentBuilder));
         ensureGreen();
@@ -219,7 +219,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingMVFields() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("locations").field("type", "geo_point").field("lat_lon", true)
@@ -345,7 +344,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
 
     @Test
     // Regression bug: https://github.com/elasticsearch/elasticsearch/issues/2851
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingWithMissingGeoPoint() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("type1")
                 .startObject("properties").startObject("locations").field("type", "geo_point").field("lat_lon", true)
@@ -639,7 +637,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
      * Issue 3073
      */
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoDistanceFilter() throws IOException {
         double lat = 40.720611;
         double lon = -73.998776;
@@ -650,12 +647,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
                         .startObject("properties")
                             .startObject("pin")
                                 .field("type", "geo_point")
-//                                .field("geohash", true)
-//                                .field("geohash_precision", 24)
-//                                .field("lat_lon", true)
-//                                .startObject("fielddata")
-//                                    .field("format", randomNumericFieldDataFormat())
-//                                .endObject()
                             .endObject()
                         .endObject()
                     .endObject()
