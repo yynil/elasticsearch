@@ -69,20 +69,6 @@ abstract class AbstractIndexGeoPointFieldData extends AbstractIndexFieldData<Ato
             if (term == null) {
                 return null;
             }
-//            spare.copyUTF8Bytes(term);
-//            int commaIndex = -1;
-//            for (int i = 0; i < spare.length(); i++) {
-//                if (spare.charAt(i) == ',') { // saves a string creation
-//                    commaIndex = i;
-//                    break;
-//                }
-//            }
-//            if (commaIndex == -1) {
-//                assert false;
-//                return next.reset(0, 0);
-//            }
-//            final double lat = Double.parseDouble(new String(spare.chars(), 0, commaIndex));
-//            final double lon = Double.parseDouble(new String(spare.chars(), commaIndex + 1, spare.length() - (commaIndex + 1)));
             final long hashed = NumericUtils.prefixCodedToLong(term);
             final double lat = GeoUtils.mortonUnhashLat(hashed);
             final double lon = GeoUtils.mortonUnhashLon(hashed);

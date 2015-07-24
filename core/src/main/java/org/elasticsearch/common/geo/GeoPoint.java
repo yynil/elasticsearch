@@ -77,6 +77,12 @@ public final class GeoPoint {
         return this;
     }
 
+    public GeoPoint resetFromIndexHash(long hash) {
+        lon = GeoUtils.mortonUnhashLon(hash);
+        lat = GeoUtils.mortonUnhashLat(hash);
+        return this;
+    }
+
     public GeoPoint resetFromGeoHash(String hash) {
         GeoHashUtils.decode(hash, this);
         return this;

@@ -45,7 +45,7 @@ import org.apache.lucene.util.ToStringUtils;
  *
  *    @lucene.experimental
  */
-public final class GeoPointDistanceQuery extends GeoPointInBBoxQuery {
+public class GeoPointDistanceQuery extends GeoPointInBBoxQuery {
   protected final double centerLon;
   protected final double centerLat;
   protected final double radius;
@@ -92,9 +92,9 @@ public final class GeoPointDistanceQuery extends GeoPointInBBoxQuery {
 
   static GeoBoundingBox computeBBox(final double centerLon, final double centerLat, final double radius) {
       double[] t = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 0, radius, null);
-      double[] r = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 0, radius, null);
-      double[] b = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 0, radius, null);
-      double[] l = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 0, radius, null);
+      double[] r = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 90, radius, null);
+      double[] b = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 180, radius, null);
+      double[] l = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 270, radius, null);
 
       return new GeoBoundingBox(GeoUtils.normalizeLon(l[0]), GeoUtils.normalizeLon(r[0]), GeoUtils.normalizeLat(b[1]),
               GeoUtils.normalizeLat(t[1]));
