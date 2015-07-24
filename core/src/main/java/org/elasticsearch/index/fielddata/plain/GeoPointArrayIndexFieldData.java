@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.document.GeoPointField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomAccessOrds;
@@ -43,10 +42,7 @@ import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 /**
- * {GeoPointIndexFieldData}.java
- * nknize, 6/18/15 9:29 PM
- * <p>
- * Description:
+ *
  */
 public class GeoPointArrayIndexFieldData extends AbstractIndexGeoPointFieldData {
     private final CircuitBreakerService breakerService;

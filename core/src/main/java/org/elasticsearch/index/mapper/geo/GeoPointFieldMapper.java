@@ -795,31 +795,13 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         }
     }
 
-    public static class CustomGeoPointDocValuesField extends CustomNumericDocValuesField {
-
-        private final ObjectHashSet<GeoPoint> points;
-
+    public static class CustomGeoPointDocValuesField extends NumberFieldMapper.CustomLongNumericDocValuesField {
         public CustomGeoPointDocValuesField(String name, double lat, double lon) {
-            super(name);
-            points = new ObjectHashSet<>(2);
-            points.add(new GeoPoint(lat, lon));
+            super(name, org.apache.lucene.util.GeoUtils.mortonHash(lon, lat));
         }
 
         public void add(double lat, double lon) {
-            points.add(new GeoPoint(lat, lon));
-        }
-
-        @Override
-        public BytesRef binaryValue() {
-            final byte[] bytes = new byte[points.size() * 16];
-            int off = 0;
-            for (Iterator<ObjectCursor<GeoPoint>> it = points.iterator(); it.hasNext(); ) {
-                final GeoPoint point = it.next().value;
-                ByteUtils.writeDoubleLE(point.getLat(), bytes, off);
-                ByteUtils.writeDoubleLE(point.getLon(), bytes, off + 8);
-                off += 16;
-            }
-            return new BytesRef(bytes);
+            super.add(org.apache.lucene.util.GeoUtils.mortonHash(lon, lat));
         }
     }
 
