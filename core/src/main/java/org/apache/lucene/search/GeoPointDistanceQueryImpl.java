@@ -98,7 +98,7 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
     GeoPointDistanceQueryImpl that = (GeoPointDistanceQueryImpl) o;
 
     if (!query.equals(that.query)) return false;
-      
+    
     return true;
   }
 
