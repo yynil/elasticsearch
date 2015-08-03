@@ -22,9 +22,7 @@ package org.apache.lucene.search;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.AttributeSource;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.GeoUtils;
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.ToStringUtils;
 
 import java.io.IOException;
@@ -156,6 +154,7 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
     GeoPolygonTermsEnum(final TermsEnum tenum, final double minLon, final double minLat,
                         final double maxLon, final double maxLat) {
       super(tenum, minLon, minLat, maxLon, maxLat);
+      this.postFilter = new GeoPointInPolygonPostFilter();
     }
 
     @Override
@@ -171,7 +170,7 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
     }
 
     @Override
-    protected boolean cellIntersects(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+    protected boolean cellIntersectsMBR(final double minLon, final double minLat, final double maxLon, final double maxLat) {
       return GeoUtils.rectIntersects(minLon, minLat, maxLon, maxLat, GeoPointInPolygonQuery.this.minLon,
               GeoPointInPolygonQuery.this.minLat, GeoPointInPolygonQuery.this.maxLon, GeoPointInPolygonQuery.this.maxLat);
     }
@@ -186,24 +185,12 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
      * @param term term for candidate document
      * @return match status
      */
-    @Override
-    protected AcceptStatus accept(BytesRef term) {
-      // first filter by bounding box
-      AcceptStatus status = super.accept(term);
-      assert status != AcceptStatus.YES_AND_SEEK;
-
-      if (status != AcceptStatus.YES) {
-        return status;
+    private class GeoPointInPolygonPostFilter implements GeoPointQueryPostFilter {
+      @Override
+      public boolean filter(final double lon, final double lat) {
+        // post-filter by point in polygon
+        return GeoUtils.pointInPolygon(x, y, lat, lon);
       }
-
-      final long val = NumericUtils.prefixCodedToLong(term);
-      final double lon = GeoUtils.mortonUnhashLon(val);
-      final double lat = GeoUtils.mortonUnhashLat(val);
-      // post-filter by point in polygon
-      if (!GeoUtils.pointInPolygon(x, y, lat, lon)) {
-        return AcceptStatus.NO;
-      }
-      return AcceptStatus.YES;
     }
   }
 

@@ -20,6 +20,7 @@
 package org.apache.lucene.search;
 
 import org.apache.lucene.index.IndexReader;
+import org.elasticsearch.common.geo.GeoUtils;
 
 /**
  *
@@ -42,11 +43,17 @@ public final class GeoPointDistanceRangeQuery extends GeoPointDistanceQuery {
 
     // add an exclusion query
     BooleanQuery bqb = new BooleanQuery();
+
+    // create a new exclusion query
     GeoPointDistanceQuery exclude = new GeoPointDistanceQuery(field, centerLon, centerLat, minRadius);
-    bqb.add(new BooleanClause(q, BooleanClause.Occur.SHOULD));
+    // full map search
+    if (((GeoPointDistanceQueryImpl)q).getRadius() == GeoUtils.EARTH_SEMI_MINOR_AXIS) {
+      bqb.add(new BooleanClause(new GeoPointInBBoxQuery(this.field, -180.0, -90.0, 180.0, 90.0), BooleanClause.Occur.SHOULD));
+    } else {
+      bqb.add(new BooleanClause(q, BooleanClause.Occur.SHOULD));
+    }
     bqb.add(new BooleanClause(exclude, BooleanClause.Occur.MUST_NOT));
 
     return bqb;
   }
-
 }
