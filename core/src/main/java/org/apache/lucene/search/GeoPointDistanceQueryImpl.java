@@ -22,9 +22,7 @@ package org.apache.lucene.search;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.AttributeSource;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.GeoUtils;
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.SloppyMath;
 
 import java.io.IOException;
@@ -55,6 +53,7 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
     GeoPointRadiusTermsEnum(final TermsEnum tenum, final double minLon, final double minLat,
                             final double maxLon, final double maxLat) {
       super(tenum, minLon, minLat, maxLon, maxLat);
+      this.postFilter = new GeoPointDistanceQueryPostFilter();
     }
 
     @Override
@@ -67,35 +66,26 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
       return GeoUtils.rectWithinCircle(minLon, minLat, maxLon, maxLat, query.centerLon, query.centerLat, query.radius);
     }
 
+    @Override
+    protected boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+      return (cellCrosses(minLon, minLat, maxLon, maxLat) || cellContains(minLon, minLat, maxLon, maxLat)
+          || cellWithin(minLon, minLat, maxLon, maxLat));
+    }
+
     /**
      * The two-phase query approach. The parent
-     * {@link org.apache.lucene.search.GeoPointTermsEnum#accept} method is called to match
+     * {@link org.apache.lucene.search.GeoPointTermsEnum.DefaultGeoPointQueryPostFilter} class match
      * encoded terms that fall within the bounding box of the polygon. Those documents that pass the initial
-     * bounding box filter are then compared to the provided polygon using the
-     * {@link org.apache.lucene.util.GeoUtils#pointInPolygon} method.
+     * bounding box filter are then compared to the provided distance using the
+     * {@link org.apache.lucene.util.SloppyMath#haversin} method.
      *
-     * @param term term for candidate document
      * @return match status
      */
-    @Override
-    protected AcceptStatus accept(BytesRef term) {
-      // first filter by bounding box
-      AcceptStatus status = super.accept(term);
-      assert status != AcceptStatus.YES_AND_SEEK;
-
-      if (status != AcceptStatus.YES) {
-        return status;
+    class GeoPointDistanceQueryPostFilter implements GeoPointTermsEnum.GeoPointQueryPostFilter {
+      public boolean filter(final double lon, final double lat) {
+        // post-filter by distance
+        return (SloppyMath.haversin(query.centerLat, query.centerLon, lat, lon) * 1000.0 <= query.radius);
       }
-
-      final long val = NumericUtils.prefixCodedToLong(term);
-      final double lon = GeoUtils.mortonUnhashLon(val);
-      final double lat = GeoUtils.mortonUnhashLat(val);
-      // post-filter by distance
-      if (!(SloppyMath.haversin(query.centerLat, query.centerLon, lat, lon)*1000.0 <= query.radius)) {
-        return AcceptStatus.NO;
-      }
-
-      return AcceptStatus.YES;
     }
   }
 
@@ -117,5 +107,9 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
     int result = super.hashCode();
     result = 31 * result + query.hashCode();
     return result;
+  }
+
+  public double getRadius() {
+    return query.getRadius();
   }
 }
