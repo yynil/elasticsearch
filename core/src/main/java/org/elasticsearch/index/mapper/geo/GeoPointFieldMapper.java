@@ -24,6 +24,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.collect.Iterators;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.util.GeoHashUtils;
 import org.apache.lucene.document.GeoPointField;
 import org.apache.lucene.index.IndexOptions;
@@ -109,7 +111,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             FIELD_TYPE.setOmitNorms(true);
             FIELD_TYPE.setNumericType(FieldType.NumericType.LONG);
             FIELD_TYPE.setNumericPrecisionStep(GeoPointField.PRECISION_STEP);
-            FIELD_TYPE.setHasDocValues(false);
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+            FIELD_TYPE.setHasDocValues(true);
             FIELD_TYPE.setStored(true);
             FIELD_TYPE.freeze();
         }
@@ -705,8 +708,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         }
 
         if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored()) {
-//            Field field = new Field(fieldType.names().indexName(), Double.toString(point.lat()) + ',' + Double.toString(point.lon()), fieldType);
-//            context.doc().add(field);
             context.doc().add(new GeoPointField(fieldType().names().indexName(), point.lon(), point.lat(), fieldType() ));
         }
         if (fieldType().isGeohashEnabled()) {
@@ -718,15 +719,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         if (fieldType().isLatLonEnabled()) {
             latMapper.parse(context.createExternalValueContext(point.lat()));
             lonMapper.parse(context.createExternalValueContext(point.lon()));
-        }
-        if (fieldType().hasDocValues()) {
-            CustomGeoPointDocValuesField field = (CustomGeoPointDocValuesField) context.doc().getByKey(fieldType().names().indexName());
-            if (field == null) {
-                field = new CustomGeoPointDocValuesField(fieldType().names().indexName(), point.lat(), point.lon());
-                context.doc().addWithKey(fieldType().names().indexName(), field);
-            } else {
-                field.add(point.lat(), point.lon());
-            }
         }
         multiFields.parse(this, context);
     }
