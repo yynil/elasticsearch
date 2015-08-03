@@ -35,11 +35,6 @@ import java.util.List;
  * computes all ranges along a space-filling curve that represents
  * the given bounding box and enumerates all terms contained within those ranges
  *
- * Note: the {@param detailLevel} is configurable for controlling the boundary resolution of the query. The
- * higher the resolution the greater the number of ranges along the query boundary. This results in visiting fewer terms
- * in the terms dictionary for the price of memory usage. The lower the resolution the fewer number of ranges (and less
- * memory usage) for the price of visiting more terms.
- *
  *  @lucene.experimental
  */
 class GeoPointTermsEnum extends FilteredTermsEnum {
@@ -47,25 +42,30 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
   protected final double minLat;
   protected final double maxLon;
   protected final double maxLat;
-  protected final short detailLevel;
-  private final static short MIN_LEVEL = 3 * GeoPointField.PRECISION_STEP;
-  private final static short MAX_LEVEL = 6 * GeoPointField.PRECISION_STEP;
 
-  private Range currentRange;
-  private BytesRef currentLowerBound, currentUpperBound;
+  protected GeoPointQueryPostFilter postFilter;
+
+  protected Range currentRange;
+  private BytesRef currentCell;
 
   private final List<Range> rangeBounds = new LinkedList<>();
+
+  // detail level should be a factor of PRECISION_STEP limiting the depth of recursion (and number of ranges)
+  // in this case a factor of 4 brings the detail level to ~0.002/0.001 degrees lon/lat respectively (or ~222m/111m)
+  private static final short MAX_SHIFT = GeoPointField.PRECISION_STEP * 4;
+  protected static final short DETAIL_LEVEL = ((GeoUtils.BITS<<1)-MAX_SHIFT)/2;
 
   GeoPointTermsEnum(final TermsEnum tenum, final double minLon, final double minLat,
                     final double maxLon, final double maxLat) {
     super(tenum);
-    this.detailLevel = computeDetailLevel(minLon, minLat, maxLon, maxLat);
     final long rectMinHash = GeoUtils.mortonHash(minLon, minLat);
     final long rectMaxHash = GeoUtils.mortonHash(maxLon, maxLat);
     this.minLon = GeoUtils.mortonUnhashLon(rectMinHash);
     this.minLat = GeoUtils.mortonUnhashLat(rectMinHash);
     this.maxLon = GeoUtils.mortonUnhashLon(rectMaxHash);
     this.maxLat = GeoUtils.mortonUnhashLat(rectMaxHash);
+
+    postFilter = new DefaultGeoPointQueryPostFilter();
 
     computeRange(0L, (short) (((GeoUtils.BITS) << 1) - 1));
     Collections.sort(rangeBounds);
@@ -76,7 +76,13 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
    */
   private final void computeRange(long term, final short shift) {
     final long split = term | (0x1L<<shift);
-    final long upperMax = term | ((0x1L<<(shift+1))-1);
+    assert shift < 64;
+    final long upperMax;
+    if (shift < 63) {
+      upperMax = term | ((1L << (shift+1))-1);
+    } else {
+      upperMax = 0xffffffffffffffffL;
+    }
     final long lowerMax = split-1;
 
     relateAndRecurse(term, lowerMax, shift);
@@ -97,36 +103,62 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
     final double maxLon = GeoUtils.mortonUnhashLon(end);
     final double maxLat = GeoUtils.mortonUnhashLat(end);
 
-    final short level = (short)(62-res>>>1);
+    final short level = (short)((GeoUtils.BITS<<1)-res>>>1);
 
     // if cell is within and a factor of the precision step, or it crosses the edge of the shape add the range
     final boolean within = res % GeoPointField.PRECISION_STEP == 0 && cellWithin(minLon, minLat, maxLon, maxLat);
-    if (within || (level == detailLevel && cellCrosses(minLon, minLat, maxLon, maxLat))) {
-      rangeBounds.add(new Range(start, end, res, level, !within));
-    } else if (level <= detailLevel && cellIntersects(minLon, minLat, maxLon, maxLat)) {
-      computeRange(start, (short)(res - 1));
+    if (within || (level == DETAIL_LEVEL && cellIntersectsShape(minLon, minLat, maxLon, maxLat))) {
+      rangeBounds.add(new Range(start, res, level, !within));
+    } else if (level < DETAIL_LEVEL && cellIntersectsMBR(minLon, minLat, maxLon, maxLat)) {
+      computeRange(start, (short) (res - 1));
     }
   }
 
+  /**
+   * Determine whether the quad-cell crosses the shape
+   */
   protected boolean cellCrosses(final double minLon, final double minLat, final double maxLon, final double maxLat) {
     return GeoUtils.rectCrosses(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
   }
 
+  /**
+   * Determine whether quad-cell is within the shape
+   */
   protected boolean cellWithin(final double minLon, final double minLat, final double maxLon, final double maxLat) {
     return GeoUtils.rectWithin(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
   }
 
-  protected boolean cellIntersects(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+  /**
+   * Return whether quad-cell contains the bounding box of this shape
+   */
+  protected boolean cellContains(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+    return GeoUtils.rectWithin(this.minLon, this.minLat, this.maxLon, this.maxLat, minLon, minLat, maxLon, maxLat);
+  }
+
+  /**
+   * Default shape is a rectangle, so this returns the same as {@code cellIntersectsMBR}
+   */
+  protected boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+    return cellIntersectsMBR(minLon, minLat, maxLon, maxLat);
+  }
+
+  /**
+   * Primary driver for cells intersecting shape boundaries
+   */
+  protected boolean cellIntersectsMBR(final double minLon, final double minLat, final double maxLon, final double maxLat) {
     return GeoUtils.rectIntersects(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
+  }
+
+  public boolean boundaryTerm() {
+    if (currentRange == null) {
+      throw new IllegalStateException("GeoPointTermsEnum empty or not initialized");
+    }
+    return currentRange.boundary;
   }
 
   private void nextRange() {
     currentRange = rangeBounds.remove(0);
-    currentLowerBound = currentRange.lower;
-    assert currentUpperBound == null || currentUpperBound.compareTo(currentRange.lower) <= 0 :
-        "The current upper bound must be <= the new lower bound";
-
-    currentUpperBound = currentRange.upper;
+    currentCell = currentRange.cell;
   }
 
   @Override
@@ -137,20 +169,20 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
       }
 
       // if the new upper bound is before the term parameter, the sub-range is never a hit
-      if (term != null && term.compareTo(currentUpperBound) > 0) {
+      if (term != null && term.compareTo(currentCell) > 0) {
         nextRange();
         if (!rangeBounds.isEmpty()) {
           continue;
         }
       }
       // never seek backwards, so use current term if lower bound is smaller
-      return (term != null && term.compareTo(currentLowerBound) > 0) ?
-          term : currentLowerBound;
+      return (term != null && term.compareTo(currentCell) > 0) ?
+          term : currentCell;
     }
 
     // no more sub-range enums available
     assert rangeBounds.isEmpty();
-    currentLowerBound = currentUpperBound = null;
+    currentCell = null;
     return null;
   }
 
@@ -165,27 +197,18 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
   @Override
   protected AcceptStatus accept(BytesRef term) {
     // validate value is in range
-    while (currentUpperBound == null || term.compareTo(currentUpperBound) > 0) {
+    while (currentCell == null || term.compareTo(currentCell) > 0) {
       if (rangeBounds.isEmpty()) {
         return AcceptStatus.END;
       }
       // peek next sub-range, only seek if the current term is smaller than next lower bound
-      if (term.compareTo(rangeBounds.get(0).lower) < 0) {
+      if (term.compareTo(rangeBounds.get(0).cell) < 0) {
         return AcceptStatus.NO_AND_SEEK;
       }
-      // step forward to next range without seeking, as next lower range bound is less or equal current term
+      // step forward to next range without seeking, as next range is less or equal current term
       nextRange();
     }
 
-    // final-filter boundary ranges by bounding box
-    if (currentRange.boundary) {
-      final long val = NumericUtils.prefixCodedToLong(term);
-      final double lon = GeoUtils.mortonUnhashLon(val);
-      final double lat = GeoUtils.mortonUnhashLat(val);
-      if (!GeoUtils.bboxContains(lon, lat, minLon, minLat, maxLon, maxLat)) {
-        return AcceptStatus.NO;
-      }
-    }
     return AcceptStatus.YES;
   }
 
@@ -193,36 +216,36 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
    * Internal class to represent a range along the space filling curve
    */
   protected final class Range implements Comparable<Range> {
-    final BytesRef lower;
-    final BytesRef upper;
+    final BytesRef cell;
     final short level;
     final boolean boundary;
 
-    Range(final long lower, final long upper, final short res, final short level, boolean boundary) {
+    Range(final long lower, final short res, final short level, boolean boundary) {
       this.level = level;
       this.boundary = boundary;
 
       BytesRefBuilder brb = new BytesRefBuilder();
-      NumericUtils.longToPrefixCodedBytes(lower, boundary ? 0 : res, brb);
-      this.lower = brb.get();
-      NumericUtils.longToPrefixCodedBytes(upper, boundary ? 0 : res, (brb = new BytesRefBuilder()));
-      this.upper = brb.get();
+      NumericUtils.longToPrefixCodedBytes(lower, res, brb);
+      this.cell = brb.get();
     }
 
     @Override
     public int compareTo(Range other) {
-      return this.lower.compareTo(other.lower);
+      return this.cell.compareTo(other.cell);
     }
   }
 
   /**
-   * Computes the range detail level as a function of the bounding box size. This is currently computed as 5% of the
-   * smallest distance between longitudes or latitudes rounded down to the nearest factor of
-   * {@link org.apache.lucene.document.GeoPointField#PRECISION_STEP}. The detail is currently restricted to a minimum of
-   * 9 and a maximum of 18
+   * Interface for 2nd phase filter
    */
-  private short computeDetailLevel(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-    short level = (short)(StrictMath.log(180.0 / (StrictMath.min(maxLon - minLon, maxLat - minLat) * 0.05)) / GeoUtils.LOG2);
-    return (short)StrictMath.max(MIN_LEVEL, StrictMath.min((level - (level % GeoPointField.PRECISION_STEP)), MAX_LEVEL));
+  interface GeoPointQueryPostFilter {
+    abstract public boolean filter(final double lon, final double lat);
+  }
+
+  class DefaultGeoPointQueryPostFilter implements GeoPointQueryPostFilter {
+    @Override
+    public boolean filter(final double lon, final double lat) {
+      return GeoUtils.bboxContains(lon, lat, minLon, minLat, maxLon, maxLat);
+    }
   }
 }

@@ -20,10 +20,14 @@
 package org.apache.lucene.util;
 
 /**
- * {GeoHashUtils}.java
- * nknize, 7/23/15 1:00 PM
- * <p>
- * Description:
+ * Utilities for converting to/from the GeoHash standard
+ *
+ * The geohash long format is represented as lon/lat (x/y) interleaved with the 4 least significant bits
+ * representing the level (1-12) [xyxy...xyxyllll]
+ *
+ * This differs from a morton encoded value which interleaves lat/lon (y/x).
+ *
+ * @lucene.experimental
  */
 public class GeoHashUtils {
     public static final char[] BASE_32 = {'0', '1', '2', '3', '4', '5', '6',
@@ -33,16 +37,20 @@ public class GeoHashUtils {
     public static final String BASE_32_STRING = new String(BASE_32);
 
     public static final int PRECISION = 12;
+    private static final short MORTON_OFFSET = (GeoUtils.BITS<<1) - (PRECISION*5);
 
     /**
-     * Encode using the geohash based long format (lat/lon interleaved, least significant 4 bits = level)
+     * Encode lon/lat to the geohash based long format (lon/lat interleaved, 4 least significant bits = level)
      */
     public static final long longEncode(final double lon, final double lat, final int level) {
         // shift to appropriate level
-        final short msf = (short)(((12 - level) * 5) + 2);
+        final short msf = (short)(((12 - level) * 5) + MORTON_OFFSET);
         return ((GeoUtils.flipFlop(GeoUtils.mortonHash(lon, lat)) >>> msf) << 4) | level;
     }
 
+    /**
+     * Encode from geohash string to the geohash based long format (lon/lat interleaved, 4 least significant bits = level)
+     */
     public static final long longEncode(final String hash) {
         int level = hash.length()-1;
         long b;
@@ -54,6 +62,9 @@ public class GeoHashUtils {
         return (l<<4)|hash.length();
     }
 
+    /**
+     * Encode to a geohash string from the geohash based long format
+     */
     public static final String stringEncode(long geoHashLong) {
         int level = (int)geoHashLong&15;
         geoHashLong >>>= 4;
@@ -66,10 +77,16 @@ public class GeoHashUtils {
         return new String(chars);
     }
 
+    /**
+     * Encode to a geohash string from full resolution longitude, latitude)
+     */
     public static final String stringEncode(final double lon, final double lat) {
         return stringEncode(lon, lat, 12);
     }
 
+    /**
+     * Encode to a level specific geohash string from full resolution longitude, latitude
+     */
     public static final String stringEncode(final double lon, final double lat, final int level) {
         // bit twiddle to geohash (since geohash is a swapped (lon/lat) encoding)
         final long hashedVal = GeoUtils.flipFlop(GeoUtils.mortonHash(lon, lat));
@@ -86,10 +103,16 @@ public class GeoHashUtils {
         return geoHash.toString();
     }
 
+    /**
+     * Encode to a full precision geohash string from a given morton encoded long value
+     */
     public static final String stringEncodeFromMortonLong(final long hashedVal) throws Exception {
-        return stringEncode(hashedVal, 12);
+        return stringEncode(hashedVal, PRECISION);
     }
 
+    /**
+     * Encode to a geohash string at a given level from a morton long
+     */
     public static final String stringEncodeFromMortonLong(long hashedVal, final int level) {
         // bit twiddle to geohash (since geohash is a swapped (lon/lat) encoding)
         hashedVal = GeoUtils.flipFlop(hashedVal);
@@ -106,19 +129,27 @@ public class GeoHashUtils {
         return geoHash.toString();
     }
 
+    /**
+     * Encode to a morton long value from a given geohash string
+     */
     public static final long mortonEncode(final String hash) {
         int level = 11;
         long b;
         long l = 0L;
         for(char c : hash.toCharArray()) {
             b = (long)(BASE_32_STRING.indexOf(c));
-            l |= (b<<((level--*5)+2));
+            l |= (b<<((level--*5) + MORTON_OFFSET));
         }
         return GeoUtils.flipFlop(l);
     }
 
+    /**
+     * Encode to a morton long value from a given geohash long value
+     */
     public static final long mortonEncode(final long geoHashLong) {
         final int level = (int)(geoHashLong&15);
-        return GeoUtils.flipFlop((geoHashLong >>> 4) << (((level - 1) * 5) + 2));
+        final short odd = (short)(level & 1);
+
+        return GeoUtils.flipFlop((geoHashLong >>> 4) << odd) << (((12 - level) * 5) + (MORTON_OFFSET - odd));
     }
 }

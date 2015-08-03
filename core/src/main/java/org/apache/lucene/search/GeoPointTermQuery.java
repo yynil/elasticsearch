@@ -19,19 +19,17 @@
 
 package org.apache.lucene.search;
 
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.GeoUtils;
 
 /**
  * TermQuery for GeoPointField for overriding {@link org.apache.lucene.search.MultiTermQuery} methods specific to
  * Geospatial operations
  *
- * Note: see {@link org.apache.lucene.search.GeoPointTermsEnum} for a special note about
- * {@param detailLevel}
- *
  * @lucene.experimental
  */
 
-// TODO: remove this?  Just absorb into its base class5
+// TODO: remove this?  Just absorb into its base class
 abstract class GeoPointTermQuery extends MultiTermQuery {
   // simple bounding box optimization - no objects used to avoid dependencies
   protected final double minLon;
@@ -62,5 +60,18 @@ abstract class GeoPointTermQuery extends MultiTermQuery {
     this.minLat = minLat;
     this.maxLon = maxLon;
     this.maxLat = maxLat;
+
+    this.rewriteMethod = GEO_CONSTANT_SCORE_REWRITE;
   }
+
+  public static final RewriteMethod GEO_CONSTANT_SCORE_REWRITE = new RewriteMethod() {
+    @Override
+    public Query rewrite(IndexReader reader, MultiTermQuery query) {
+      Query result = new GeoPointTermQueryConstantScoreWrapper<>((GeoPointTermQuery)query);
+      result.setBoost(query.getBoost());
+      return result;
+    }
+  };
+
+
 }
