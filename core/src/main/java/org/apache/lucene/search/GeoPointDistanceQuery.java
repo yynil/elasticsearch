@@ -94,7 +94,7 @@ public class GeoPointDistanceQuery extends GeoPointInBBoxQuery {
     double[] r = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 90, radius, null);
     double[] b = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 180, radius, null);
     double[] l = GeoProjectionUtils.pointFromLonLatBearing(centerLon, centerLat, 270, radius, null);
-    
+
     return new GeoBoundingBox(GeoUtils.normalizeLon(l[0]), GeoUtils.normalizeLon(r[0]), GeoUtils.normalizeLat(b[1]),
         GeoUtils.normalizeLat(t[1]));
   }
