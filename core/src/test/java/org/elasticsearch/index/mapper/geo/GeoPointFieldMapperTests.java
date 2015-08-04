@@ -298,7 +298,6 @@ public class GeoPointFieldMapperTests extends ESSingleNodeTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testArrayLatLonValues() throws Exception {
         String mapping = XContentFactory.jsonBuilder().startObject().startObject("type")
                 .startObject("properties").startObject("point").field("type", "geo_point").field("lat_lon", true).field("store", "yes").endObject().endObject()
@@ -393,7 +392,7 @@ public class GeoPointFieldMapperTests extends ESSingleNodeTestCase {
         assertThat(doc.rootDoc().getFields("point.lat")[1].numericValue().doubleValue(), equalTo(1.4));
         assertThat(doc.rootDoc().getFields("point.lon")[1].numericValue().doubleValue(), equalTo(1.5));
         hash = GeoUtils.mortonHash(1.5, 1.4);
-        assertThat(Long.parseLong(doc.rootDoc().getFields("point")[2].stringValue()), equalTo(hash));
+        assertThat(Long.parseLong(doc.rootDoc().getFields("point")[1].stringValue()), equalTo(hash));
     }
 
     @Test
@@ -461,7 +460,6 @@ public class GeoPointFieldMapperTests extends ESSingleNodeTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testLonLatArrayArrayStored() throws Exception {
         String mapping = XContentFactory.jsonBuilder().startObject().startObject("type")
                 .startObject("properties").startObject("point").field("type", "geo_point").field("lat_lon", true).field("store", "yes").endObject().endObject()
