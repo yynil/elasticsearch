@@ -37,13 +37,11 @@ import java.util.List;
  *
  *  @lucene.experimental
  */
-class GeoPointTermsEnum extends FilteredTermsEnum {
+abstract class GeoPointTermsEnum extends FilteredTermsEnum {
   protected final double minLon;
   protected final double minLat;
   protected final double maxLon;
   protected final double maxLat;
-
-  protected GeoPointQueryPostFilter postFilter;
 
   protected Range currentRange;
   private BytesRef currentCell;
@@ -64,8 +62,6 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
     this.minLat = GeoUtils.mortonUnhashLat(rectMinHash);
     this.maxLon = GeoUtils.mortonUnhashLon(rectMaxHash);
     this.maxLat = GeoUtils.mortonUnhashLat(rectMaxHash);
-
-    postFilter = new DefaultGeoPointQueryPostFilter();
 
     computeRange(0L, (short) (((GeoUtils.BITS) << 1) - 1));
     Collections.sort(rangeBounds);
@@ -117,15 +113,23 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
   /**
    * Determine whether the quad-cell crosses the shape
    */
-  protected boolean cellCrosses(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-    return GeoUtils.rectCrosses(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
-  }
+  protected abstract boolean cellCrosses(final double minLon, final double minLat, final double maxLon, final double maxLat);
 
   /**
    * Determine whether quad-cell is within the shape
    */
-  protected boolean cellWithin(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-    return GeoUtils.rectWithin(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
+  protected abstract boolean cellWithin(final double minLon, final double minLat, final double maxLon, final double maxLat);
+
+  /**
+   * Default shape is a rectangle, so this returns the same as {@code cellIntersectsMBR}
+   */
+  protected abstract boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat);
+
+  /**
+   * Primary driver for cells intersecting shape boundaries
+   */
+  protected boolean cellIntersectsMBR(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+    return GeoUtils.rectIntersects(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
   }
 
   /**
@@ -133,20 +137,6 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
    */
   protected boolean cellContains(final double minLon, final double minLat, final double maxLon, final double maxLat) {
     return GeoUtils.rectWithin(this.minLon, this.minLat, this.maxLon, this.maxLat, minLon, minLat, maxLon, maxLat);
-  }
-
-  /**
-   * Default shape is a rectangle, so this returns the same as {@code cellIntersectsMBR}
-   */
-  protected boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-    return cellIntersectsMBR(minLon, minLat, maxLon, maxLat);
-  }
-
-  /**
-   * Primary driver for cells intersecting shape boundaries
-   */
-  protected boolean cellIntersectsMBR(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-    return GeoUtils.rectIntersects(minLon, minLat, maxLon, maxLat, this.minLon, this.minLat, this.maxLon, this.maxLat);
   }
 
   public boolean boundaryTerm() {
@@ -212,6 +202,8 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
     return AcceptStatus.YES;
   }
 
+  protected abstract boolean postFilter(final double lon, final double lat);
+
   /**
    * Internal class to represent a range along the space filling curve
    */
@@ -232,20 +224,6 @@ class GeoPointTermsEnum extends FilteredTermsEnum {
     @Override
     public int compareTo(Range other) {
       return this.cell.compareTo(other.cell);
-    }
-  }
-
-  /**
-   * Interface for 2nd phase filter
-   */
-  interface GeoPointQueryPostFilter {
-    abstract public boolean filter(final double lon, final double lat);
-  }
-
-  class DefaultGeoPointQueryPostFilter implements GeoPointQueryPostFilter {
-    @Override
-    public boolean filter(final double lon, final double lat) {
-      return GeoUtils.bboxContains(lon, lat, minLon, minLat, maxLon, maxLat);
     }
   }
 }
