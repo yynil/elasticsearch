@@ -102,7 +102,6 @@ public class MultiFieldsIntegrationIT extends ESIntegTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testGeoPointMultiField() throws Exception {
         assertAcked(
                 client().admin().indices().prepareCreate("my-index")
@@ -115,7 +114,7 @@ public class MultiFieldsIntegrationIT extends ESIntegTestCase {
         Map<String, Object> mappingSource = mappingMetaData.sourceAsMap();
         Map aField = ((Map) XContentMapValues.extractValue("properties.a", mappingSource));
         logger.info("Keys: " + aField.keySet());
-        assertThat(aField.size(), equalTo(3));
+        assertThat(aField.size(), equalTo(2));
         assertThat(aField.get("type").toString(), equalTo("geo_point"));
         assertThat(aField.get("fields"), notNullValue());
 

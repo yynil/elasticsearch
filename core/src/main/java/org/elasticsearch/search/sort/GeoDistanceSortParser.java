@@ -189,7 +189,6 @@ public class GeoDistanceSortParser implements SortParser {
                 return new FieldComparator.DoubleComparator(numHits, null, null) {
                     @Override
                     protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-                        System.out.println(numHits);
                         final MultiGeoPointValues geoPointValues = geoIndexFieldData.load(context).getGeoPointValues();
                         final SortedNumericDoubleValues distanceValues = GeoDistance.distanceValues(geoPointValues, distances);
                         final NumericDoubleValues selectedValues;

@@ -258,7 +258,6 @@ public class MultiFieldTests extends ESSingleNodeTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testConvertMultiFieldGeoPoint() throws Exception {
         String mapping = copyToStringFromClasspath("/org/elasticsearch/index/mapper/multifield/test-multi-field-type-geo_point.json");
         DocumentMapper docMapper = createIndex("test").mapperService().documentMapperParser().parse(mapping);
