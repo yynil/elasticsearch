@@ -472,7 +472,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingNestedFields() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("company")
                 .startObject("properties")
