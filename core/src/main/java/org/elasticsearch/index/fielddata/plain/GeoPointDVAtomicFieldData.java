@@ -65,15 +65,17 @@ final class GeoPointDVAtomicFieldData extends AbstractAtomicGeoPointFieldData {
             public void setDocument(int docId) {
                 long hash;
                 values.setDocument(docId);
-                final int numDocVals = values.count();
-                if (numDocVals > points.length) {
+                count = values.count();
+                if (count > points.length) {
                     final int previousLength = points.length;
-                    count += numDocVals;
-                    points = Arrays.copyOf(points, ArrayUtil.oversize(numDocVals, RamUsageEstimator.NUM_BYTES_OBJECT_REF));
-                    for (int i = previousLength, p=0; p < values.count(); ++i, ++p) {
-                        hash = values.valueAt(p);
-                        points[p] = new GeoPoint(GeoUtils.mortonUnhashLat(hash), GeoUtils.mortonUnhashLon(hash));
+                    points = Arrays.copyOf(points, ArrayUtil.oversize(count, RamUsageEstimator.NUM_BYTES_OBJECT_REF));
+                    for (int i = previousLength; i < points.length; ++i) {
+                        points[i] = new GeoPoint();
                     }
+                }
+                for (int i=0; i<count; ++i) {
+                    hash = values.valueAt(i);
+                    points[i].reset(GeoUtils.mortonUnhashLat(hash), GeoUtils.mortonUnhashLon(hash));
                 }
             }
 

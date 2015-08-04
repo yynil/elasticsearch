@@ -89,11 +89,13 @@ final class GeoPointTermQueryConstantScoreWrapper <Q extends GeoPointTermQuery> 
             BitDocIdSet bis = new BitDocIdSet(new SparseFixedBitSet(reader.maxDoc()));
             do {
               sdv.setDocument(docId);
-              final long hash = sdv.valueAt(0);
-              final double lon = GeoUtils.mortonUnhashLon(hash);
-              final double lat = GeoUtils.mortonUnhashLat(hash);
-              if (termsEnum.postFilter.filter(lon, lat)) {
-                bis.bits().set(docId);
+              for (int i=0; i<sdv.count(); ++i) {
+                final long hash = sdv.valueAt(i);
+                final double lon = GeoUtils.mortonUnhashLon(hash);
+                final double lat = GeoUtils.mortonUnhashLat(hash);
+                if (termsEnum.postFilter(lon, lat)) {
+                  bis.bits().set(docId);
+                }
               }
             } while ((docId = docs.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS);
             builder.or(bis.iterator());

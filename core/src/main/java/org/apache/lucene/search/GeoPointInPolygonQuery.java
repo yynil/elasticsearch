@@ -154,7 +154,6 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
     GeoPolygonTermsEnum(final TermsEnum tenum, final double minLon, final double minLat,
                         final double maxLon, final double maxLat) {
       super(tenum, minLon, minLat, maxLon, maxLat);
-      this.postFilter = new GeoPointInPolygonPostFilter();
     }
 
     @Override
@@ -170,9 +169,8 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
     }
 
     @Override
-    protected boolean cellIntersectsMBR(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-      return GeoUtils.rectIntersects(minLon, minLat, maxLon, maxLat, GeoPointInPolygonQuery.this.minLon,
-              GeoPointInPolygonQuery.this.minLat, GeoPointInPolygonQuery.this.maxLon, GeoPointInPolygonQuery.this.maxLat);
+    protected boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat) {
+      return cellWithin(minLon, minLat, maxLon, maxLat) || cellCrosses(minLon, minLat, maxLon, maxLat);
     }
 
     /**
@@ -185,12 +183,9 @@ public final class GeoPointInPolygonQuery extends GeoPointInBBoxQueryImpl {
      * @param term term for candidate document
      * @return match status
      */
-    private class GeoPointInPolygonPostFilter implements GeoPointQueryPostFilter {
-      @Override
-      public boolean filter(final double lon, final double lat) {
-        // post-filter by point in polygon
-        return GeoUtils.pointInPolygon(x, y, lat, lon);
-      }
+    @Override
+    protected boolean postFilter(final double lon, final double lat) {
+      return GeoUtils.pointInPolygon(x, y, lat, lon);
     }
   }
 

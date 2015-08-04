@@ -238,9 +238,9 @@ public class GeoDistanceIT extends ESIntegTestCase {
         client().prepareIndex("test", "type1", "2").setSource(jsonBuilder().startObject()
                 .field("names", "Times Square", "Tribeca")
                 .startArray("locations")
-                        // to NY: 5.286 km
+                        // to NY: 5.284 km
                 .startObject().field("lat", 40.759011).field("lon", -73.9844722).endObject()
-                        // to NY: 0.4621 km
+                        // to NY: 0.46196 km
                 .startObject().field("lat", 40.718266).field("lon", -74.007819).endObject()
                 .endArray()
                 .endObject()).execute().actionGet();
@@ -475,7 +475,6 @@ public class GeoDistanceIT extends ESIntegTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "awaits full GeoPointField Integration")
     public void testDistanceSortingNestedFields() throws Exception {
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("company")
                 .startObject("properties")

@@ -53,7 +53,6 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
     GeoPointRadiusTermsEnum(final TermsEnum tenum, final double minLon, final double minLat,
                             final double maxLon, final double maxLat) {
       super(tenum, minLon, minLat, maxLon, maxLat);
-      this.postFilter = new GeoPointDistanceQueryPostFilter();
     }
 
     @Override
@@ -68,8 +67,8 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
 
     @Override
     protected boolean cellIntersectsShape(final double minLon, final double minLat, final double maxLon, final double maxLat) {
-      return (cellCrosses(minLon, minLat, maxLon, maxLat) || cellContains(minLon, minLat, maxLon, maxLat)
-          || cellWithin(minLon, minLat, maxLon, maxLat));
+      return (cellContains(minLon, minLat, maxLon, maxLat)
+          || cellWithin(minLon, minLat, maxLon, maxLat) || cellCrosses(minLon, minLat, maxLon, maxLat));
     }
 
     /**
@@ -81,11 +80,9 @@ final class GeoPointDistanceQueryImpl extends GeoPointInBBoxQueryImpl {
      *
      * @return match status
      */
-    class GeoPointDistanceQueryPostFilter implements GeoPointTermsEnum.GeoPointQueryPostFilter {
-      public boolean filter(final double lon, final double lat) {
-        // post-filter by distance
-        return (SloppyMath.haversin(query.centerLat, query.centerLon, lat, lon) * 1000.0 <= query.radius);
-      }
+    @Override
+    protected boolean postFilter(final double lon, final double lat) {
+      return (SloppyMath.haversin(query.centerLat, query.centerLon, lat, lon) * 1000.0 <= query.radius);
     }
   }
 
